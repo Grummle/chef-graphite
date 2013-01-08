@@ -1,10 +1,20 @@
 include_recipe "apache2::mod_python"
 
-[ "python-cairo-dev", "python-django", "python-django-tagging", "python-memcache", "python-rrdtool" ].each do |graphite_package|
-  package graphite_package do
-    action :install
-  end
+if platform?("centos")
+        [ "pycairo-devel", "Django", "django-tagging", "python-memcached", "rrdtool-python" ].each do |graphite_package|
+          package graphite_package do
+            action :install
+          end
+        end
+else
+        [ "python-cairo-dev", "python-django", "python-django-tagging", "python-memcache", "python-rrdtool" ].each do |graphite_package|
+          package graphite_package do
+            action :install
+          end
+        end
 end
+   
+
 
 python_pip "graphite-web" do
   version node["graphite"]["version"]

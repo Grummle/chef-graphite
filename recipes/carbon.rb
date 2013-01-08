@@ -25,6 +25,14 @@ template "/opt/graphite/conf/storage-schemas.conf" do
   notifies :restart, "service[carbon-cache]"
 end
 
+if platform?("centos")
+    template "/etc/init.d/carbon-cache" do
+            mode "0755"
+            source "carbon-cache.erb"
+            notifies :restart, "service[carbon-cache]"
+    end
+end
+
 template "/opt/graphite/conf/storage-aggregation.conf" do
   mode "0644"
   source "storage-aggregation.conf.erb"
@@ -56,6 +64,6 @@ logrotate_app "carbon" do
 end
 
 service "carbon-cache" do
-  provider Chef::Provider::Service::Upstart
-  action [ :enable, :start ]
+  provider Chef::Provider::Service::Init
+  action [ :start ]
 end
