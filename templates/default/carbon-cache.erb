@@ -8,6 +8,7 @@
 # Source function library.
 . /etc/init.d/functions
 
+
 RETVAL=0
 prog="carbon-cache"
 
@@ -21,6 +22,14 @@ start_relay () {
 
 start_cache () {
      /usr/bin/python /opt/graphite/bin/carbon-cache.py start
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && success || failure
+        echo
+        return $RETVAL
+}
+
+status_cache () {
+     /usr/bin/python /opt/graphite/bin/carbon-cache.py status 
         RETVAL=$?
         [ $RETVAL -eq 0 ] && success || failure
         echo
@@ -52,6 +61,9 @@ case "$1" in
   stop)
     #stop_relay
     stop_cache
+        ;;
+  status)
+    status_cache
         ;;
   restart)
     #stop_relay
