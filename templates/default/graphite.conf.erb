@@ -1,8 +1,9 @@
 <VirtualHost *:80>
+  SetEnv GRAPHITE_STORAGE_DIR <%= @params[:data_path] %>
   ServerName <%= @params[:server_name] %>
   DocumentRoot <%= @params[:docroot] %>
-  ErrorLog /opt/graphite/storage/log/webapp/error.log
-  CustomLog /opt/graphite/storage/log/webapp/access.log common
+  ErrorLog <%= @params[:data_path] %>/log/webapp/error.log
+  CustomLog <%= @params[:data_path] %>/log/webapp/access.log common
 
   Header set Access-Control-Allow-Origin "*"
   Header set Access-Control-Allow-Methods "GET, OPTIONS"

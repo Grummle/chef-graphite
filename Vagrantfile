@@ -59,8 +59,6 @@ Vagrant::Config.run do |config|
     }
 
     chef.run_list = [
-      "recipe[yum::epel]",
-      "recipe[apache2]",
       "recipe[graphite::default]"
     ]
   end

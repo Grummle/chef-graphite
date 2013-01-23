@@ -1,3 +1,5 @@
+include_recipe "yum::epel"
+include_recipe "apache2"
 include_recipe "python"
 include_recipe "logrotate"
 

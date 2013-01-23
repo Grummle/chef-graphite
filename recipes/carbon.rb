@@ -12,7 +12,8 @@ template "/opt/graphite/conf/carbon.conf" do
     :line_receiver_interface    => node["graphite"]["carbon"]["line_receiver_interface"],
     :pickle_receiver_interface  => node["graphite"]["carbon"]["pickle_receiver_interface"],
     :cache_query_interface      => node["graphite"]["carbon"]["cache_query_interface"],
-    :log_updates                => node["graphite"]["carbon"]["log_updates"]
+    :log_updates                => node["graphite"]["carbon"]["log_updates"],
+    :data_path                  => node["graphite"]["carbon"]["data_path"] 
   )
   notifies :restart, "service[carbon-cache]"
 end
@@ -41,13 +42,85 @@ template "/opt/graphite/conf/storage-aggregation.conf" do
   notifies :restart, "service[carbon-cache]"
 end
 
-execute "chown" do
-  command "chown -R #{node["apache"]["user"]}:#{node["apache"]["group"]} /opt/graphite/storage"
-  only_if do
-    f = File.stat("/opt/graphite/storage")
-    f.uid == 0 && f.gid == 0
-  end
+directory "create base storage directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    path node["graphite"]["carbon"]["data_path"]
+    recursive true
+    action :create
+    mode '0755'
 end
+
+directory "whisper directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/whisper"
+    recursive true
+    action :create
+end
+
+directory "log directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/log"
+    recursive true
+    action :create
+end
+
+directory "rrd directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/rrd"
+    recursive true
+    action :create
+end
+
+directory "lists directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/lists"
+    recursive true
+    action :create
+end
+
+directory "carbon-cache log directory" do
+    owner 'root'
+    group 'root'
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/log/carbon-cache"
+    recursive true
+    action :create
+end
+
+directory "carbon whisper" do
+    owner 'root'
+    group 'root'
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/whisper/carbon"
+    recursive true
+    action :create
+end
+
+directory "carbon agents" do
+    owner 'root'
+    group 'root'
+    mode '0755'
+    path "#{node["graphite"]["carbon"]["data_path"]}/whisper/carbon/agents"
+    recursive true
+    action :create
+end
+
+#execute "chown" do
+#  command "chown -R #{node["apache"]["user"]}:#{node["apache"]["group"]} /opt/graphite/storage"
+#  only_if do
+#    f = File.stat("/opt/graphite/storage")
+#    f.uid == 0 && f.gid == 0
+#  end
+#end
 
 template "/etc/init/carbon-cache.conf" do
   mode "0644"
@@ -57,7 +130,7 @@ end
 
 logrotate_app "carbon" do
   cookbook "logrotate"
-  path "/opt/graphite/storage/log/carbon-cache/carbon-cache-a/*.log"
+  path "#{node["graphite"]["carbon"]["data_path"]}/log/carbon-cache/carbon-cache-a/*.log"
   frequency "daily"
   rotate 7
   create "644 root root"

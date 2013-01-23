@@ -1,5 +1,35 @@
 include_recipe "apache2::mod_python"
 
+directory "create base storage directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    path node["graphite"]["carbon"]["data_path"]
+    recursive true
+    action :create
+    mode '0755'
+end
+
+directory "create log directory" do
+    owner node["apache"]["user"]
+    group node["apache"]["group"]
+    path "#{node["graphite"]["carbon"]["data_path"]}/log/webapp"
+    recursive true
+    action :create
+    mode '0755'
+end
+
+[ "error.log", "access.log","exception.log","info.log" ].each do |filename|
+  execute "touch #{node["graphite"]["carbon"]["data_path"]}/log/webapp/#{filename}" do
+  end
+end
+
+[ "exception.log","info.log" ].each do |filename|
+  execute "chown #{node["apache"]["user"]}:#{node["apache"]["group"]} #{node["graphite"]["carbon"]["data_path"]}/log/webapp/#{filename}" do
+  end
+end
+
+
+
 if platform?("centos")
         [ "pycairo-devel", "Django", "django-tagging", "python-memcached", "rrdtool-python" ].each do |graphite_package|
           package graphite_package do
@@ -36,7 +66,8 @@ template "/opt/graphite/webapp/graphite/local_settings.py" do
   group node["apache"]["group"]
   variables(
     :timezone       => node["graphite"]["dashboard"]["timezone"],
-    :memcache_hosts => node["graphite"]["dashboard"]["memcache_hosts"]
+    :memcache_hosts => node["graphite"]["dashboard"]["memcache_hosts"],
+    :data_path      => node["graphite"]["carbon"]["data_path"]
   )
   notifies :restart, "service[apache2]"
 end
@@ -50,22 +81,23 @@ end
 web_app "graphite" do
   template "graphite.conf.erb"
   docroot "/opt/graphite/webapp"
+  data_path node["graphite"]["carbon"]["data_path"] 
   server_name "graphite"
 end
 
 [ "log", "whisper" ].each do |dir|
-  directory "/opt/graphite/storage/#{dir}" do
+  directory "#{node["graphite"]["carbon"]["data_path"]}/#{dir}" do
     owner node["apache"]["user"]
     group node["apache"]["group"]
   end
 end
 
-directory "/opt/graphite/storage/log/webapp" do
+directory "#{node["graphite"]["carbon"]["data_path"]}/log/webapp" do
   owner node["apache"]["user"]
   group node["apache"]["group"]
 end
 
-cookbook_file "/opt/graphite/storage/graphite.db" do
+cookbook_file "#{node["graphite"]["carbon"]["data_path"]}/graphite.db" do
   owner node["apache"]["user"]
   group node["apache"]["group"]
   action :create_if_missing
@@ -73,7 +105,7 @@ end
 
 logrotate_app "dashboard" do
   cookbook "logrotate"
-  path "/opt/graphite/storage/log/webapp/*.log"
+  path "#{node["graphite"]["carbon"]["data_path"]}/log/webapp/*.log"
   frequency "daily"
   rotate 7
   create "644 root root"
